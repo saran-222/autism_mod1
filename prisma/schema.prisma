@@ -1,0 +1,112 @@
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  DOCTOR
+  RECEPTIONIST
+}
+
+model Sequence {
+  id       Int    @id @default(autoincrement())
+  prefix   String @unique
+  seq      Int    @default(10)
+}
+
+model Request {
+  id        Int   @id @default(autoincrement())
+  name      String
+  mobile    Int
+  address   String
+  state     String
+  country   String
+  hospitalMail  String
+  adminMail  String
+  createdAt DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  hospitalId       String   @unique 
+  name      String
+  slug      String   @unique
+  plan      String   
+  logoUrl   String?
+  theme     Json?
+  stripeCustomerId String?
+  razorpayId       String?
+  secrets   Json? 
+
+  createdAt DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  users     User[]
+  patients  Patient[]
+}
+
+model User {
+  id        Int   @id @default(autoincrement())
+  userId       String   @unique 
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  email     String
+  name      String?
+  password  String?
+  role           Role
+  hmsUserlId  String?  
+  createdAt DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, email])
+}
+
+model Patient {
+  id               Int   @id @default(autoincrement())
+  patientId       String   @unique
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  hospitalPatientId String
+  name             String
+  dob              DateTime
+  gender              String?
+  hmsPatientId  String?  
+
+  createdAt        DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  assessments      Assessment[]
+
+  @@unique([tenantId, hospitalPatientId])
+  @@index([tenantId])
+}
+
+
+
+
+
+
+
+model Assessment {
+  id            String   @id @default(cuid())
+  tenantId      String
+  patientId     String
+  patient       Patient  @relation(fields: [patientId], references: [patientId])
+  tool          String  
+  responses     Json
+  score         Float?
+  outcome       String?
+  createdBy     String   // userId
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, patientId])
+}
